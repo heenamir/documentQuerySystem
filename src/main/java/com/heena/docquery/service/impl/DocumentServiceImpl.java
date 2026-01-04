@@ -1,6 +1,8 @@
 package com.heena.docquery.service.impl;
 
 import com.heena.docquery.dto.DocumentResponseDTO;
+import com.heena.docquery.mapper.DocumentMapper;
+import com.heena.docquery.model.DocumentMetadata;
 import com.heena.docquery.model.DocumentType;
 import com.heena.docquery.parser.ParsedMetadata;
 import com.heena.docquery.service.DocumentDetector;
@@ -20,6 +22,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentValidator validator;
     private final DocumentDetector detector;
     private final DocumentParser parser;
+    private final DocumentMapper mapper;
 
     @Override
     public DocumentResponseDTO process(MultipartFile file) {
@@ -34,14 +37,12 @@ public class DocumentServiceImpl implements DocumentService {
 
         // 3. Extract text (and later: classify → vectorize → store)
         String content = parser.extractText(file);
-        ParsedMetadata metadata = parser.extractMetadata(file);
+        ParsedMetadata parsedMetadata = parser.extractMetadata(file);
 
-        // 4. Build response DTO
-        return DocumentResponseDTO.builder()
-                .fileName(file.getOriginalFilename())
-                .type(type)
-                .content(content)
-                .metadata(metadata)
-                .build();
+        // 4. Convert parser metadata → domain metadata
+        DocumentMetadata metadata = mapper.toDomainMetadata(parsedMetadata);
+
+        // 5. Build response DTO
+        return mapper.toResponse(content, metadata, type);
     }
 }
